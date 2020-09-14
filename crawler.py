@@ -12,14 +12,30 @@ class Parameters:
 
 # Defines a study object
 class Study:
-    def __init__(self, name: str, description: str, last_updated: date):
-        self.name = name
+    def __init__(self, title: str, description: str, last_updated: date, ID: str, sType: str,
+            conditions: List[str], sponsor: str, recruitmentStatus: str, age: str, sex: str,
+            control: str, additionalCriteria: str, locations: List[Dict[str, str]], contactName: str, contactPhone: str, contactEmail: str):
+        self.title = title
         self.description = description
         self.last_updated = last_updated
+        self.ID = ID
+        self.type = sType
+        self.conditions = conditions
+        self.sponsor = sponsor
+        self.recruitmentStatus = recruitmentStatus
+        self.age = age
+        self.sex = sex
+        self.control = control
+        self.additionalCriteria = additionalCriteria
+        self.locations = locations
+        self.contactName = contactName
+        self.contactPhone = contactPhone
+        self.contactEmail = contactEmail
+
 
     # String representation of a Study
     def __str__(self):
-        return f'{self.name}: {self.description}'
+        return f'{self.title} (ID: {self.ID}): {self.description}'
 
 
 # Given a list of Study objects, exports the data to our database
