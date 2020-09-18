@@ -1,6 +1,7 @@
 from typing import List, Dict
 from datetime import datetime as date, time
 import urllib.request
+from bs4 import BeautifulSoup
 
 # Defines the parameters from the admin panel
 
@@ -41,11 +42,11 @@ class Study:
         self.type = study_type
         self.conditions = conditions
         self.sponsor = sponsor
-        self.recruitment_status = recruitmentStatus
+        self.recruitment_status = recruitment_Status
         self.age = age
         self.sex = sex
         self.control = control
-        self.additional_criteria = additionalCriteria
+        self.additional_criteria = additional_criteria
         self.locations = locations
         self.contact = contact
 
