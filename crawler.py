@@ -29,28 +29,25 @@ class Parameters:
 # locations: list of {"name": , "country": , "city": , "zipcode": , "status": }
 # contact: {"name": , "phone": , "email": }
 
-
 class Study:
     def __init__(self, title: str, description: str, last_updated: date, ID: str, study_type: str,
-                 conditions: List[str], sponsor: str, recruitment_status: str, age: str, sex: str,
-                 control: str, additional_criteria: str, locations: List[Dict[str, str]],
+                 conditions: List[str], sponsor: str, recruitment_status: str, age: (int, int, str), 
+                 sex: str, control: str, additional_criteria: str, locations: List[Dict[str, str]],
                  contact: Dict[str, str]):
         self.title = title
         self.description = description
         self.last_updated = last_updated
         self.ID = ID
-        self.type = sType
+        self.type = study_type
         self.conditions = conditions
         self.sponsor = sponsor
-        self.recruitmentStatus = recruitmentStatus
+        self.recruitment_status = recruitmentStatus
         self.age = age
         self.sex = sex
         self.control = control
-        self.additionalCriteria = additionalCriteria
+        self.additional_criteria = additionalCriteria
         self.locations = locations
-        self.contactName = contactName
-        self.contactPhone = contactPhone
-        self.contactEmail = contactEmail
+        self.contact = contact
 
     # String representation of a Study
 
@@ -101,7 +98,7 @@ def download_and_format(id: str) -> Study:
     last_updated = date.strptime(date_str, '%B %d, %Y')
         
     study_type = data.find("study_type").get_text()
-    condition = data.find("condition").get_text()
+    condition = [] #TODO 
     sponsor = data.find("lead_sponsor").find("agency").get_text() ##lead sponsor and collborators
     recruitment_status = data.find("overall_status").get_text()
         
