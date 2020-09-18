@@ -21,3 +21,13 @@ for a_tag in urls_to_each_pages:
     for id in ids:
         studyID_list += [id.text]
         print(id.text)
+
+
+
+
+
+# Current Issues 
+#    scraping all studyIDs takes forever because there are 370,000 studies registered. 
+#    -> improve algorithms using datastucture(currently O(n^2)
+#    -> most of studies scraped are very old studies which is done long long ago. For example, Study NCT00000102 conducted at 2005
+#        Therefore, it needs to skip some old research. 
