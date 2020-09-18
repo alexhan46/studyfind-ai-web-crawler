@@ -8,33 +8,16 @@ from bs4 import BeautifulSoup
 
 class Parameters:
 
-    def __init__(self, dotw: str, t: time):
-        self.day_of_the_week = dotw
+    def __init__(self, dot: str, t: time):
+        self.day_of_the_week = dot
         self.time = t
 
 # Defines a study object
-#
-# INPUT FORMAT
-# title:
-# description:
-# last_updated:
-# ID:
-# study_type:
-# conditions:
-# sponsor:
-# recruitment_status: "Recruiting" or "Completed" or ..
-# age: (min, max, unit)
-# sex: "All" or "Female" or "Male"
-# control:
-# additional_criteria:
-# locations: list of {"name": , "country": , "city": , "zipcode": , "status": }
-# contact: {"name": , "phone": , "email": }
-
 class Study:
     def __init__(self, title: str, description: str, last_updated: date, ID: str, study_type: str,
                  conditions: List[str], sponsor: str, recruitment_status: str, age: (int, int, str), 
                  sex: str, control: str, additional_criteria: str, locations: List[Dict[str, str]],
-                 contact: Dict[str, str]):
+                 contactName: str, contactPhone: str, contactEmail: str):
         self.title = title
         self.description = description
         self.last_updated = last_updated
@@ -42,13 +25,15 @@ class Study:
         self.type = study_type
         self.conditions = conditions
         self.sponsor = sponsor
-        self.recruitment_status = recruitment_Status
+        self.recruitment_status = recruitment_status
         self.age = age
         self.sex = sex
         self.control = control
         self.additional_criteria = additional_criteria
         self.locations = locations
-        self.contact = contact
+        self.contactName = contactName
+        self.contactPhone = contactPhone
+        self.contactEmail = contactEmail
 
     # String representation of a Study
 
@@ -93,46 +78,44 @@ def download_and_format(id: str) -> Study:
 
     #foramtting 
     title = data.find("official_title").get_text()
-    description = "" #TODO #summary?
-        
+    description = data.find("brief_summary").get_text()
+            
     date_str = data.find("last_update_posted").get_text()
     last_updated = date.strptime(date_str, '%B %d, %Y')
-        
+            
     study_type = data.find("study_type").get_text()
-    condition = [] #TODO 
-    sponsor = data.find("lead_sponsor").find("agency").get_text() ##lead sponsor and collborators
+
+    conditions = []
+    for condition in data.findAll("condition"):
+        conditions.append(condition)
+        
+    sponsor = data.find("lead_sponsor").find("agency").get_text() ##lead sponsor only (no collborators)
     recruitment_status = data.find("overall_status").get_text()
-        
-    min_age = data.find("minimum_age").get_text()
-    max_age = data.find("maximum_age").get_text()
-    unit = min_age[min_age.index(" ")+1:]
-    age = (int("".join(filter(str.isdigit, min_age))), 
-            int("".join(filter(str.isdigit, max_age))), unit)
-        
+            
+    age = {"min":data.find("minimum_age").get_text(), "max":data.find("maximum_age").get_text()}
+            
     sex = data.find("gender").get_text()
-    control = "" #TODO #??
-    additional_criteria = "" #TODO #inclusion/exclusion
+    control = data.find("healthy_volunteers").get_text()
+    additional_criteria = data.find("criteria").get_text()
 
     locations = []
-    for loc in data.findAll("location"):
-        name = loc.find("name").get_text()
-        country = loc.find("country").get_text()
-        city = loc.find("city").get_text()
-        zipcode = loc.find("zip").get_text()
-        status = loc.find("status").get_text()
-        locations.append({"name": name, "country": country, "city": city, "zipcode": zipcode, "status": status})
+    if data.findAll("location") is not None:
+        for loc in data.findAll("location"):
+            localLocation = loc.find("name").get_text()
+            nationalLocation = loc.find("address").get_text().strip("\n").replace("\n", ", ")
+            locations.append({"locationLocation": localLocation, "nationalLocation": nationalLocation, "status": status})
 
-    contact = {}
-    c = data.find("overall_contact")
-    if c is not None:
-        contact["name"] = c.find("last_name").get_text()
-        contact["phone"] = c.find("phone").get_text()
-        contact["email"] = c.find("email").get_text()
+    contact = data.find("overall_contact")
+    if contact is not None:
+        contactName = contact.find("last_name").get_text()
+        contactPhone = contact.find("phone").get_text()
+        contactEmail = contact.find("email").get_text()
 
     return Study(title, description, last_updated, id, study_type, condition, sponsor, recruitment_status,
-                age, sex, control, additional_criteria, locations, contact)
+                age, sex, control, additional_criteria, locations, contactName, contactPhone, contactEmail)
 
 # Executes the crawler, by getting new studies, download their data, and exporting it to the database
+
 def crawl():
 
     new_studies = get_study_ids(import_study_ids_from_database())
