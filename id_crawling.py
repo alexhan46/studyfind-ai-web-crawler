@@ -6,19 +6,18 @@ import requests
 
 
 source = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling').text
+source_html_all = BeautifulSoup(source, 'lxml')
 
-soup = BeautifulSoup(source, 'lxml')
-
-td = soup.find('table')
-urls = td.find_all('a', href=True)
+td = source_html_all.find('table')
+urls_to_each_pages = td.find_all('a', href=True)
 studyID_list = []
-for a in urls:
-    parsedURL = "https://clinicaltrials.gov" + a.get('href')
+for a_tag in urls_to_each_pages:
+    parsedURL = "https://clinicaltrials.gov" + a_tag.get('href')
     new_source = requests.get(parsedURL).text
-    new_soup = BeautifulSoup(new_source, 'lxml')
-    table_for_ids = new_soup.find('table')
+    source_html_per_page = BeautifulSoup(new_source, 'lxml')
+    table_for_ids = source_html_per_page.find('table')
     ids = table_for_ids.find_all('a')
     
     for id in ids:
         studyID_list += [id.text]
-        print(studyID_list)
+        print(id.text)
