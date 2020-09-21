@@ -67,6 +67,7 @@ def get_study_ids(studies: Dict[str, date]) -> List[str]:
 
 # Given a study id, downloads and formats the data, and returns a Study object
 def download_and_format(id: str) -> Study:
+    id = "NCT" + id
     url = "https://clinicaltrials.gov/ct2/show/" + id + "?resultsxml=true"
     try: 
         rawdata = urllib.request.urlopen(url)
@@ -87,7 +88,7 @@ def download_and_format(id: str) -> Study:
 
     conditions = []
     for condition in data.findAll("condition"):
-        conditions.append(condition)
+        conditions.append(condition.get_text())
     
     #lead sponsor only (no collborators)
     sponsor = data.find("lead_sponsor").find("agency").get_text() 
