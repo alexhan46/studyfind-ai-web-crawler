@@ -68,10 +68,10 @@ def get_study_ids(studies: Dict[str, date]) -> List[str]:
 # Given a study id, downloads and formats the data, and returns a Study object
 def download_and_format(id: str) -> Study:
     url = "https://clinicaltrials.gov/ct2/show/" + id + "?resultsxml=true"
-    rawdata = urllib.request.urlopen(url)
-
-    # Request not successfully processed
-    if rawdata.getcode() != 200:  
+    try: 
+        rawdata = urllib.request.urlopen(url)
+    except urllib.error.HTTPError as exception:
+        print(exception)
         return None
 
     data = BeautifulSoup(rawdata.read(), "lxml-xml")
@@ -83,36 +83,43 @@ def download_and_format(id: str) -> Study:
     date_str = data.find("last_update_posted").get_text()
     last_updated = date.strptime(date_str, '%B %d, %Y')
             
-    study_type = data.find("study_type").get_text()
+    study_type = data.find("study_type").get_text() if data.find("study_type") != None else None
 
     conditions = []
     for condition in data.findAll("condition"):
         conditions.append(condition)
-        
-    sponsor = data.find("lead_sponsor").find("agency").get_text() ##lead sponsor only (no collborators)
-    recruitment_status = data.find("overall_status").get_text()
+    
+    #lead sponsor only (no collborators)
+    sponsor = data.find("lead_sponsor").find("agency").get_text() 
+    recruitment_status = data.find("overall_status").get_text() 
             
     age = {"min":data.find("minimum_age").get_text(), "max":data.find("maximum_age").get_text()}
             
-    sex = data.find("gender").get_text()
-    control = data.find("healthy_volunteers").get_text()
-    additional_criteria = data.find("criteria").get_text()
+    sex = data.find("gender").get_text() if data.find("gender") != None else None
+    control = data.find("healthy_volunteers").get_text() if data.find("healthy_volunteers") != None else None
+    additional_criteria = data.find("criteria").get_text() if data.find("criteria") != None else None
 
     locations = []
-    if data.findAll("location") is not None:
-        for loc in data.findAll("location"):
-            localLocation = loc.find("name").get_text()
-            nationalLocation = loc.find("address").get_text().strip("\n").replace("\n", ", ")
-            locations.append({"locationLocation": localLocation, "nationalLocation": nationalLocation, "status": status})
+    for loc in data.findAll("location"):
+        name = loc.find("name").get_text() if loc.find("name") != None else None
+        country = loc.find("country").get_text() if loc.find("country") != None else None
+        city = loc.find("city").get_text() if loc.find("city") != None else None
+        zipcode = loc.find("zip").get_text() if loc.find("zip") != None else None
+        status = loc.find("status").get_text() if loc.find("status") != None else None
+        locations.append({"name": name, "country": country, "city": city, "zipcode": zipcode, "status": status})
 
     contact = data.find("overall_contact")
     if contact is not None:
-        contactName = contact.find("last_name").get_text()
-        contactPhone = contact.find("phone").get_text()
-        contactEmail = contact.find("email").get_text()
+        contactName = contact.find("last_name").get_text() if contact.find("last_name") != None else None
+        contactPhone = contact.find("phone").get_text() if contact.find("phone") != None else None
+        contactEmail = contact.find("email").get_text() if contact.find("email") != None else None
+    else:
+        contactName, contactPhone, contactEmail = None, None, None
 
     return Study(title, description, last_updated, id, study_type, condition, sponsor, recruitment_status,
                 age, sex, control, additional_criteria, locations, contactName, contactPhone, contactEmail)
+
+
 
 # Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
