@@ -12,7 +12,6 @@ config = {
 
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
-db.child("test")
 
 # Defines the parameters from the admin panel
 class Parameters:
@@ -54,7 +53,7 @@ class Study:
 def export_studies_to_database(studies: List[Study]):
     for studyvar in studies:
         idnum = studyvar.ID
-        db.child(idnum).child("title").set(studyvar.title)
+        db.child("test").child(idnum).child("title").set(studyvar.title)
         db.child("test").child(idnum).child("description").set(studyvar.description)
         db.child("test").child(idnum).child("last_updated").set(studyvar.last_updated)
         db.child("test").child(idnum).child("ID").set(studyvar.ID)
@@ -80,6 +79,8 @@ def import_studies_from_database() -> List[Study]:
     data = db.child("test").get()
     data = data.val()
     out = []
+    if data is None:
+        return None
     while(len(data) != 0):
         id, study = data.popitem(last=False)
         newstudy = Study(study["title"], study["description"], study["last_updated"], study["ID"], study["type"], study["conditions"], study["sponsor"], study["recruitmentStatus"], study["age"], study["sex"], study["control"], study["additionalCriteria"], study["locations"], study["contactName"], study["contactPhone"], study["contactEmail"])
@@ -123,11 +124,12 @@ def crawl():
 
 # TODO: Schedule crawler to run based on parameters from admin panel
 
-"""
-Test the Database Functions
-testingstudy = Study("THE SEQUEL", "GOODBYE DataBase", "When I get BACKK", "123", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1")
+
+#Test the Database Functions
+"""testingstudy = Study("THE SEQUEL", "GOODBYE DataBase", "When I get BACKK", "123", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1")
 testinglist = [testingstudy]
 export_studies_to_database(testinglist)
 outlist = import_studies_from_database()
-print(import_study_ids_from_database())
-"""
+print(outlist[0])
+print(import_study_ids_from_database())"""
+import_study_ids_from_database()
