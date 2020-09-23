@@ -2,6 +2,11 @@ from typing import List, Dict
 from datetime import datetime as date, time
 import urllib.request
 from bs4 import BeautifulSoup
+import requests
+# adding fake User-Agent because our program is running in background
+from fake_useragent import UserAgent 
+import os.path
+
 
 # Defines the parameters from the admin panel
 
@@ -62,12 +67,44 @@ def import_study_ids_from_database() -> Dict[str, date]:
 # Given a dict mapping study ids to last updated time, gets a list of study ids that we haven't seen before
 
 def get_study_ids(last_study_id) -> Dict[str, date]:
-    return None
+    ua = UserAgent()
+    header = {'user-agent':ua.chrome}
+    newly_added_studyIDs_list = {}
+
+    # getting html files from clinicaltrials.gov/ct2/about-site/crawling then grap the urls linking each subpages.
+    source = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30).text
+    soup = BeautifulSoup(source, 'lxml')
+
+    table = soup.find('table')
+
+    urls_to_each_pages = table.find_all('a', href=True)
+
+    for a_tag in urls_to_each_pages:
+        # Get range of studyID as list
+        range = (a_tag.next_sibling.split(" to "))
+        # Convert ['NCTxxxxxxx', 'NCTxxxxxxx'] to [xxxxxx, xxxxxx]
+        range = list(map(lambda x: int(x[3:]), range))
+
+        # search studies thta is created after given last_study_id
+        if(last_study_id<=range[0] or last_study_id<=range[1]):
+            
+            parsedURL = "https://clinicaltrials.gov" + a_tag.get('href')
+            new_source = requests.get(parsedURL, headers=header, timeout= 30).text
+            source_html_per_page = BeautifulSoup(new_source, 'lxml')
+            table_for_ids = source_html_per_page.find('table')
+            ids = table_for_ids.find_all('a')
+            
+            for id in ids:
+                id.string.replace_with(id.text[3:])
+                if (int(id.text) > last_study_id):
+                    newly_added_studyIDs_list[id.text] = None
+    return newly_added_studyIDs_list
 
 
 # Given a study id, downloads and formats the data, and returns a Study object
 def download_and_format(id: str) -> Study:
     id = "NCT" + id
+    print(id)
     url = "https://clinicaltrials.gov/ct2/show/" + id + "?resultsxml=true"
     try: 
         rawdata = urllib.request.urlopen(url)
@@ -125,15 +162,28 @@ def download_and_format(id: str) -> Study:
 # Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
 def crawl():
-    existing_studies = import_study_ids_from_database()
 
+    # TODO below code will work when the import and export database function
+    # existing_studies = import_study_ids_from_database()
+
+    existing_studies = {}
+    
+    # TODO sample last study id is 4557501. This must be replaced by dynamically changed based on what value has in database
     new_studies = get_study_ids(4557501)
 
     existing_studies.update(new_studies)
 
+
+    # TODO have to take care of handling errors. For now, when there is no fields, the code exits with error. 
+    # For example, NCT04557891 doesn't have description or other information. 
     studies = [download_and_format(study_id) for study_id in existing_studies]
 
     export_studies_to_database(studies)
 
 
 # TODO: Schedule crawler to run based on parameters from admin panel
+def main():
+    crawl()
+
+if __name__ == "__main__":
+    main()
