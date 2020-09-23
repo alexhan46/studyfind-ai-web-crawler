@@ -2,6 +2,18 @@ from typing import List, Dict
 from datetime import datetime as date, time
 import urllib.request
 from bs4 import BeautifulSoup
+import pyrebase
+
+config = {
+  "apiKey": "AIzaSyC4wlsU_QkOjD1MhT2Im-IAXZAkd5uuFiE",
+  "authDomain": "crawlerdata-4fb83.firebaseapp.com",
+  "databaseURL": "https://crawlerdata-4fb83.firebaseio.com",
+  "storageBucket": "crawlerdata-4fb83.appspot.com",
+  "serviceAccount": "crawlerdata-4fb83-firebase-adminsdk-qdzwv-1264b2c7f5.json"
+}
+
+firebase = pyrebase.initialize_app(config)
+db = firebase.database()
 
 # Defines the parameters from the admin panel
 
@@ -43,20 +55,55 @@ class Study:
 
 # Given a list of Study objects, exports the data to our database
 def export_studies_to_database(studies: List[Study]):
+    for studyvar in studies:
+        idnum = studyvar.ID
+        db.child("test").child(idnum).child("title").set(studyvar.title)
+        db.child("test").child(idnum).child("description").set(studyvar.description)
+        db.child("test").child(idnum).child("last_updated").set(studyvar.last_updated)
+        db.child("test").child(idnum).child("ID").set(studyvar.ID)
+        db.child("test").child(idnum).child("type").set(studyvar.type)
+        db.child("test").child(idnum).child("conditions").set(studyvar.conditions)
+        db.child("test").child(idnum).child("sponsor").set(studyvar.sponsor)
+        db.child("test").child(idnum).child("recruitmentStatus").set(studyvar.recruitmentStatus)
+        db.child("test").child(idnum).child("age").set(studyvar.age)
+        db.child("test").child(idnum).child("sex").set(studyvar.sex)
+        db.child("test").child(idnum).child("control").set(studyvar.control)
+        db.child("test").child(idnum).child("additionalCriteria").set(studyvar.additionalCriteria)
+        db.child("test").child(idnum).child("locations").set(studyvar.locations)
+        db.child("test").child(idnum).child("contactName").set(studyvar.contactName)
+        db.child("test").child(idnum).child("contactPhone").set(studyvar.contactPhone)
+        db.child("test").child(idnum).child("contactEmail").set(studyvar.contactEmail)
+        
 
     pass
 
 
 # Downloads studies from our database, and returns as a list of Study objects
 def import_studies_from_database() -> List[Study]:
+    data = db.child("test").get()
+    data = data.val()
+    out = []
+    if data is None:
+        return None
+    while(len(data) != 0):
+        id, study = data.popitem(last=False)
+        newstudy = Study(study["title"], study["description"], study["last_updated"], study["ID"], study["type"], study["conditions"], study["sponsor"], study["recruitmentStatus"], study["age"], study["sex"], study["control"], study["additionalCriteria"], study["locations"], study["contactName"], study["contactPhone"], study["contactEmail"])
+        out.append(newstudy)
 
-    return None
+    return out
 
 
 # Downloads study ids and the last updated timestamp for that study from our database and returns as a Dict
 def import_study_ids_from_database() -> Dict[str, date]:
-
-    return None
+    data = db.child("test").get()
+    data = data.val()
+    out = {}
+    if data is None:
+        return None
+    while(len(data) != 0):
+        id, study = data.popitem(last=False)
+        out[study["ID"]] = study["last_updated"]
+    return out
 
 
 # Given a dict mapping study ids to last updated time, gets a list of study ids that we haven't seen before
