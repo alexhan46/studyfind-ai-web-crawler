@@ -7,9 +7,10 @@ import os.path
 
 # study_id_base_index refer to the starting studyid to be crawled
 def study_id_crawling(last_study_id):
+    last_study_id = int(last_study_id[3:])
     ua = UserAgent()
     header = {'user-agent':ua.chrome}
-    newly_added_studyIDs_list = {}
+    newly_added_studyIDs_list = []
 
     # getting html files from clinicaltrials.gov/ct2/about-site/crawling then grap the urls linking each subpages.
     source = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30).text
@@ -35,11 +36,10 @@ def study_id_crawling(last_study_id):
             ids = table_for_ids.find_all('a')
             
             for id in ids:
-                id.string.replace_with(id.text[3:])
-                if (int(id.text) > last_study_id):
-                    newly_added_studyIDs_list[id.text] = None
+                if (int(id.text[3:]) > last_study_id):
+                    newly_added_studyIDs_list.append(id.text)
 
-    print(newly_added_studyIDs_list)
+    # print(newly_added_studyIDs_list)
     # (Test Purpose) exit early when they get 10000 study ids due to large volume 
     #     if(len(new_studyID_list) > 10000):
     #         break
@@ -59,7 +59,7 @@ def writeFileForTestPurpose(filename, list):
 
 # Test script with sample number of study id
 def main():
-    study_id_crawling(4557501)
+    study_id_crawling("NCT04557501")
 
 if __name__ == "__main__":
     main()

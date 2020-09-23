@@ -3,6 +3,11 @@ from datetime import datetime as date, time
 import urllib.request
 from bs4 import BeautifulSoup
 import pyrebase
+import feedparser
+import time
+from id_crawling import study_id_crawling
+
+DB_TABLE = "test"
 
 config = {
   "apiKey": "AIzaSyC4wlsU_QkOjD1MhT2Im-IAXZAkd5uuFiE",
@@ -55,32 +60,35 @@ class Study:
 
 # Given a list of Study objects, exports the data to our database
 def export_studies_to_database(studies: List[Study]):
+    maxId = None
     for studyvar in studies:
         idnum = studyvar.ID
-        db.child("test").child(idnum).child("title").set(studyvar.title)
-        db.child("test").child(idnum).child("description").set(studyvar.description)
-        db.child("test").child(idnum).child("last_updated").set(studyvar.last_updated)
-        db.child("test").child(idnum).child("ID").set(studyvar.ID)
-        db.child("test").child(idnum).child("type").set(studyvar.type)
-        db.child("test").child(idnum).child("conditions").set(studyvar.conditions)
-        db.child("test").child(idnum).child("sponsor").set(studyvar.sponsor)
-        db.child("test").child(idnum).child("recruitmentStatus").set(studyvar.recruitmentStatus)
-        db.child("test").child(idnum).child("age").set(studyvar.age)
-        db.child("test").child(idnum).child("sex").set(studyvar.sex)
-        db.child("test").child(idnum).child("control").set(studyvar.control)
-        db.child("test").child(idnum).child("additionalCriteria").set(studyvar.additionalCriteria)
-        db.child("test").child(idnum).child("locations").set(studyvar.locations)
-        db.child("test").child(idnum).child("contactName").set(studyvar.contactName)
-        db.child("test").child(idnum).child("contactPhone").set(studyvar.contactPhone)
-        db.child("test").child(idnum).child("contactEmail").set(studyvar.contactEmail)
-        
+        db.child(DB_TABLE).child(idnum).child("title").set(studyvar.title)
+        db.child(DB_TABLE).child(idnum).child("description").set(studyvar.description)
+        db.child(DB_TABLE).child(idnum).child("last_updated").set(str(studyvar.last_updated))
+        db.child(DB_TABLE).child(idnum).child("ID").set(studyvar.ID)
+        db.child(DB_TABLE).child(idnum).child("type").set(studyvar.type)
+        db.child(DB_TABLE).child(idnum).child("conditions").set(studyvar.conditions)
+        db.child(DB_TABLE).child(idnum).child("sponsor").set(studyvar.sponsor)
+        db.child(DB_TABLE).child(idnum).child("recruitmentStatus").set(studyvar.recruitment_status)
+        db.child(DB_TABLE).child(idnum).child("age").set(studyvar.age)
+        db.child(DB_TABLE).child(idnum).child("sex").set(studyvar.sex)
+        db.child(DB_TABLE).child(idnum).child("control").set(studyvar.control)
+        db.child(DB_TABLE).child(idnum).child("additionalCriteria").set(studyvar.additional_criteria)
+        db.child(DB_TABLE).child(idnum).child("locations").set(studyvar.locations)
+        db.child(DB_TABLE).child(idnum).child("contactName").set(studyvar.contactName)
+        db.child(DB_TABLE).child(idnum).child("contactPhone").set(studyvar.contactPhone)
+        db.child(DB_TABLE).child(idnum).child("contactEmail").set(studyvar.contactEmail)
 
-    pass
-
+        if maxId is None or int(maxId[3:]) < int(idnum[3:]):
+            maxId = idnum
+    
+    export_last_updated(time.strftime("%m/%d/%Y")) # Update last_updated date
+    export_latest_study_id(maxId)
 
 # Downloads studies from our database, and returns as a list of Study objects
 def import_studies_from_database() -> List[Study]:
-    data = db.child("test").get()
+    data = db.child(DB_TABLE).get()
     data = data.val()
     out = []
     if data is None:
@@ -95,7 +103,7 @@ def import_studies_from_database() -> List[Study]:
 
 # Downloads study ids and the last updated timestamp for that study from our database and returns as a Dict
 def import_study_ids_from_database() -> Dict[str, date]:
-    data = db.child("test").get()
+    data = db.child(DB_TABLE).get()
     data = data.val()
     out = {}
     if data is None:
@@ -105,20 +113,37 @@ def import_study_ids_from_database() -> Dict[str, date]:
         out[study["ID"]] = study["last_updated"]
     return out
 
+def export_last_updated(date: str):
+    db.child("last_updated").set(date)
 
-# Given a dict mapping study ids to last updated time, gets a list of study ids that we haven't seen before
+def import_last_updated() -> str:
+    data = db.child("last_updated").get().val()
+    return "0/0/0000" if data is None else data
 
-def get_study_ids(last_study_id) -> Dict[str, date]:
-    return None
+def export_latest_study_id(study_id: str):
+    db.child("latest_study").set(study_id)
+
+def import_latest_study_id() -> str:
+    data = db.child("latest_study").get().val()
+    return "NCT11111111" if data is None else data
+
+
+# Given the date of the last updated study, return a list of studies that have been updated since then
+def get_study_ids(last_updated) -> List[str]:
+    d = feedparser.parse("https://clinicaltrials.gov/ct2/results/rss.xml?rcv_d=&lup_d=14&sel_rss=mod14&lupd_s=" + last_updated + "&lupd_e=" + time.strftime("%m/%d/%Y") + "&count=100000")['entries']
+    return [x['id'] for x in d]
+
+def get_new_study_ids(latest_study) -> List[str]:
+    return study_id_crawling(latest_study)
 
 
 # Given a study id, downloads and formats the data, and returns a Study object
 def download_and_format(id: str) -> Study:
-    id = "NCT" + id
     url = "https://clinicaltrials.gov/ct2/show/" + id + "?resultsxml=true"
     try: 
         rawdata = urllib.request.urlopen(url)
     except urllib.error.HTTPError as exception:
+        print(id)
         print(exception)
         return None
 
@@ -126,7 +151,7 @@ def download_and_format(id: str) -> Study:
 
     #foramtting 
     title = data.find("official_title").get_text()
-    description = data.find("brief_summary").get_text()
+    description = data.find("brief_summary").get_text() if data.find("brief_summary") != None else None
             
     date_str = data.find("last_update_posted").get_text()
     last_updated = date.strptime(date_str, '%B %d, %Y')
@@ -141,7 +166,7 @@ def download_and_format(id: str) -> Study:
     sponsor = data.find("lead_sponsor").find("agency").get_text() 
     recruitment_status = data.find("overall_status").get_text() 
             
-    age = {"min":data.find("minimum_age").get_text(), "max":data.find("maximum_age").get_text()}
+    age = {"min":data.find("minimum_age").get_text() if data.find("minimum_age") else None, "max":data.find("maximum_age").get_text() if data.find("maximum_age") else None}
             
     sex = data.find("gender").get_text() if data.find("gender") != None else None
     control = data.find("healthy_volunteers").get_text() if data.find("healthy_volunteers") != None else None
@@ -164,7 +189,7 @@ def download_and_format(id: str) -> Study:
     else:
         contactName, contactPhone, contactEmail = None, None, None
 
-    return Study(title, description, last_updated, id, study_type, condition, sponsor, recruitment_status,
+    return Study(title, description, last_updated, id, study_type, conditions, sponsor, recruitment_status,
                 age, sex, control, additional_criteria, locations, contactName, contactPhone, contactEmail)
 
 
@@ -172,15 +197,26 @@ def download_and_format(id: str) -> Study:
 # Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
 def crawl():
-    existing_studies = import_study_ids_from_database()
 
-    new_studies = get_study_ids(4557501)
+    print("\nChecking which studies need to be updated...")
 
-    existing_studies.update(new_studies)
+    study_ids = get_new_study_ids(import_latest_study_id()) + get_study_ids(import_last_updated())
 
-    studies = [download_and_format(study_id) for study_id in existing_studies]
+    study_ids = list(dict.fromkeys(study_ids)) # removes duplicates
+
+    print("\nFound " + str(len(study_ids)) + " studies to retrieve\n")
+
+    print("\nRetreiving....")
+
+    studies = [download_and_format(study_id) for study_id in study_ids]
+
+    print("\nFinished retreiving!\n")
+
+    print('\nUploading to database...')
 
     export_studies_to_database(studies)
+
+    print('\nFinished uploading!\n')
 
 
 # TODO: Schedule crawler to run based on parameters from admin panel
