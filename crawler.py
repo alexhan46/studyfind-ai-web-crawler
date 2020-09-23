@@ -94,6 +94,8 @@ def import_study_ids_from_database() -> Dict[str, date]:
     data = db.child("test").get()
     data = data.val()
     out = {}
+    if data is None:
+        return None
     while(len(data) != 0):
         id, study = data.popitem(last=False)
         out[study["ID"]] = study["last_updated"]
@@ -123,13 +125,3 @@ def crawl():
 
 
 # TODO: Schedule crawler to run based on parameters from admin panel
-
-
-#Test the Database Functions
-"""testingstudy = Study("THE SEQUEL", "GOODBYE DataBase", "When I get BACKK", "123", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1")
-testinglist = [testingstudy]
-export_studies_to_database(testinglist)
-outlist = import_studies_from_database()
-print(outlist[0])
-print(import_study_ids_from_database())"""
-import_study_ids_from_database()
