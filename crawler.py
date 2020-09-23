@@ -84,7 +84,8 @@ def export_studies_to_database(studies: List[Study]):
             maxId = idnum
     
     export_last_updated(time.strftime("%m/%d/%Y")) # Update last_updated date
-    export_latest_study_id(maxId)
+    if maxId is not None:
+        export_latest_study_id(maxId)
 
 # Downloads studies from our database, and returns as a list of Study objects
 def import_studies_from_database() -> List[Study]:
