@@ -2,13 +2,10 @@ from typing import List, Dict
 from datetime import datetime as date, time
 import urllib.request
 from bs4 import BeautifulSoup
-<<<<<<< HEAD
 import requests
 # adding fake User-Agent because our program is running in background
 from fake_useragent import UserAgent 
 import os.path
-
-=======
 import pyrebase
 
 config = {
@@ -21,7 +18,7 @@ config = {
 
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
->>>>>>> de180fd520c44a1a1639d32ea7db5a53870f9171
+
 
 # Defines the parameters from the admin panel
 
@@ -214,9 +211,9 @@ def download_and_format(id: str) -> Study:
 def crawl():
 
     # TODO below code will work when the import and export database function
-    # existing_studies = import_study_ids_from_database()
+    existing_studies = import_study_ids_from_database()
 
-    existing_studies = {}
+    # existing_studies = {}
     
     # TODO sample last study id is 4557501. This must be replaced by dynamically changed based on what value has in database
     new_studies = get_study_ids(4557501)
