@@ -60,8 +60,8 @@ def import_study_ids_from_database() -> Dict[str, date]:
 
 
 # Given a dict mapping study ids to last updated time, gets a list of study ids that we haven't seen before
-def get_study_ids(studies: Dict[str, date]) -> List[str]:
 
+def get_study_ids(last_study_id) -> Dict[str, date]:
     return None
 
 
@@ -125,10 +125,13 @@ def download_and_format(id: str) -> Study:
 # Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
 def crawl():
+    existing_studies = import_study_ids_from_database()
 
-    new_studies = get_study_ids(import_study_ids_from_database())
+    new_studies = get_study_ids(4557501)
 
-    studies = [download_and_format(study_id) for study_id in new_studies]
+    existing_studies.update(new_studies)
+
+    studies = [download_and_format(study_id) for study_id in existing_studies]
 
     export_studies_to_database(studies)
 
