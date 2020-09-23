@@ -1,2 +1,4 @@
-# Default ignored files
 .idea
+venv
+__pycache__
+output/**
