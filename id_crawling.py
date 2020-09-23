@@ -9,7 +9,7 @@ import os.path
 def study_id_crawling(last_study_id):
     ua = UserAgent()
     header = {'user-agent':ua.chrome}
-    newly_added_studyIDs_list = []
+    newly_added_studyIDs_list = {}
 
     # getting html files from clinicaltrials.gov/ct2/about-site/crawling then grap the urls linking each subpages.
     source = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30).text
@@ -37,9 +37,9 @@ def study_id_crawling(last_study_id):
             for id in ids:
                 id.string.replace_with(id.text[3:])
                 if (int(id.text) > last_study_id):
-                    newly_added_studyIDs_list += [id.text]
+                    newly_added_studyIDs_list[id.text] = None
 
-
+    print(newly_added_studyIDs_list)
     # (Test Purpose) exit early when they get 10000 study ids due to large volume 
     #     if(len(new_studyID_list) > 10000):
     #         break
