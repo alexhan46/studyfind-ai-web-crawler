@@ -151,21 +151,22 @@ def download_and_format(id: str) -> Study:
     data = BeautifulSoup(rawdata.read(), "lxml-xml")
 
     #foramtting 
-    title = data.find("official_title").get_text()
+    title = data.find("official_title").get_text() if data.find("official_title") else None
     description = data.find("brief_summary").get_text() if data.find("brief_summary") != None else None
             
-    date_str = data.find("last_update_posted").get_text()
+    date_str = data.find("last_update_posted").get_text() if data.find("last_update_posted") != None else None
     last_updated = date.strptime(date_str, '%B %d, %Y')
             
     study_type = data.find("study_type").get_text() if data.find("study_type") != None else None
 
     conditions = []
     for condition in data.findAll("condition"):
-        conditions.append(condition.get_text())
+        if condition != None:
+            conditions.append(condition.get_text())
     
     #lead sponsor only (no collborators)
-    sponsor = data.find("lead_sponsor").find("agency").get_text() 
-    recruitment_status = data.find("overall_status").get_text() 
+    sponsor = data.find("lead_sponsor").find("agency").get_text() if data.find("lead_sponsor") and data.find("lead_sponsor").find("agency") else None
+    recruitment_status = data.find("overall_status").get_text() if data.find("overall_status") else None
             
     age = {"min":data.find("minimum_age").get_text() if data.find("minimum_age") else None, "max":data.find("maximum_age").get_text() if data.find("maximum_age") else None}
             
