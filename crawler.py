@@ -6,6 +6,7 @@ import pyrebase
 import feedparser
 import time
 from id_crawling import study_id_crawling
+from gensim.summarization import keywords
 
 DB_TABLE = "test"
 
@@ -34,7 +35,7 @@ class Study:
     def __init__(self, title: str, description: str, last_updated: date, ID: str, study_type: str,
                  conditions: List[str], sponsor: str, recruitment_status: str, age: (int, int, str), 
                  sex: str, control: str, additional_criteria: str, locations: List[Dict[str, str]],
-                 contactName: str, contactPhone: str, contactEmail: str):
+                 contactName: str, contactPhone: str, contactEmail: str, keywordLists: List[str]):
         self.title = title
         self.description = description
         self.last_updated = last_updated
@@ -51,6 +52,9 @@ class Study:
         self.contactName = contactName
         self.contactPhone = contactPhone
         self.contactEmail = contactEmail
+
+        #Adding keyword section
+        self.keywordLists = keywordLists
 
     # String representation of a Study
 
@@ -80,6 +84,9 @@ def export_studies_to_database(studies: List[Study]):
         db.child(DB_TABLE).child(idnum).child("contactPhone").set(studyvar.contactPhone)
         db.child(DB_TABLE).child(idnum).child("contactEmail").set(studyvar.contactEmail)
 
+        #add keyword section
+        db.child(DB_TABLE).child(idnum).child("keywordLists").set(studyvar.keywordLists)
+
         if maxId is None or int(maxId[3:]) < int(idnum[3:]):
             maxId = idnum
     
@@ -96,7 +103,7 @@ def import_studies_from_database() -> List[Study]:
         return None
     while(len(data) != 0):
         id, study = data.popitem(last=False)
-        newstudy = Study(study["title"], study["description"], study["last_updated"], study["ID"], study["type"], study["conditions"], study["sponsor"], study["recruitmentStatus"], study["age"], study["sex"], study["control"], study["additionalCriteria"], study["locations"], study["contactName"], study["contactPhone"], study["contactEmail"])
+        newstudy = Study(study["title"], study["description"], study["last_updated"], study["ID"], study["type"], study["conditions"], study["sponsor"], study["recruitmentStatus"], study["age"], study["sex"], study["control"], study["additionalCriteria"], study["locations"], study["contactName"], study["contactPhone"], study["contactEmail"], study['keywordLists'])
         out.append(newstudy)
 
     return out
@@ -153,7 +160,16 @@ def download_and_format(id: str) -> Study:
     #foramtting 
     title = data.find("official_title").get_text() if data.find("official_title") else None
     description = data.find("brief_summary").get_text() if data.find("brief_summary") != None else None
-            
+
+    ################ Adding keywords by NLP
+    if description is not None:
+        keywordLists = keywords(description, words=5).split('\n')
+    else:
+         keywordLists = None
+    print("studyID is..",id,"the keywords are..", keywordLists)
+    
+    ################
+
     date_str = data.find("last_update_posted").get_text() if data.find("last_update_posted") != None else None
     last_updated = date.strptime(date_str, '%B %d, %Y')
             
@@ -192,7 +208,7 @@ def download_and_format(id: str) -> Study:
         contactName, contactPhone, contactEmail = None, None, None
 
     return Study(title, description, last_updated, id, study_type, conditions, sponsor, recruitment_status,
-                age, sex, control, additional_criteria, locations, contactName, contactPhone, contactEmail)
+                age, sex, control, additional_criteria, locations, contactName, contactPhone, contactEmail, keywordLists)
 
 
 
@@ -222,3 +238,9 @@ def crawl():
 
 
 # TODO: Schedule crawler to run based on parameters from admin panel
+
+def main():
+    crawl()
+
+if __name__ == "__main__":
+    main()
