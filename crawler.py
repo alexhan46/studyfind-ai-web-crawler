@@ -7,7 +7,7 @@ import feedparser
 import time
 from id_crawling import study_id_crawling
 
-DB_TABLE = "test3"
+DB_TABLE = "test"
 
 config = {
   "apiKey": "AIzaSyC4wlsU_QkOjD1MhT2Im-IAXZAkd5uuFiE",
