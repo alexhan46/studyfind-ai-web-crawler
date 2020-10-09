@@ -140,7 +140,19 @@ def import_latest_study_id() -> str:
 # Given the date of the last updated study, return a list of studies that have been updated since then
 def get_study_ids(last_updated) -> List[str]:
     d = feedparser.parse("https://clinicaltrials.gov/ct2/results/rss.xml?rcv_d=&lup_d=14&sel_rss=mod14&lupd_s=" + last_updated + "&lupd_e=" + time.strftime("%m/%d/%Y") + "&count=100000")['entries']
-    return [x['id'] for x in d]
+    
+    if len(d) < 1000: # Max number of studies
+        return [x['id'] for x in d]
+    else:
+        # Find studies that were left out by combining filters to avoid limits
+        d = []
+        rTypes = ['a', 'b', 'e', 'f', 'd', 'g', 'h', 'i', 'm']
+        sTypes = ['Intr', 'Obsr', 'PReg', 'Expn']
+        for r in rTypes:
+            for s in sTypes:
+                url = "https://clinicaltrials.gov/ct2/results/rss.xml?rcv_d=&lup_d=14&sel_rss=mod14&lupd_s=" + last_updated + "&lupd_e=" + time.strftime("%m/%d/%Y") + "&count=100000&type=" + s + "&recrs=" + r
+                d += feedparser.parse(url)['entries']
+        return [x['id'] for x in d]
 
 def get_new_study_ids(latest_study) -> List[str]:
     return study_id_crawling(latest_study)
@@ -226,9 +238,13 @@ def crawl():
 
     print("\nFound " + str(len(study_ids)) + " studies to retrieve\n")
 
-    print("\nRetreiving....")
+    print("\nRetreiving....\n")
 
-    studies = [download_and_format(study_id) for study_id in study_ids]
+    studies = []
+    printProgressBar(0, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)  
+    for i, study_id in enumerate(study_ids):
+        studies.append(download_and_format(study_id))
+        printProgressBar(i + 1, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)
 
     print("\nFinished retreiving!\n")
 
@@ -238,11 +254,33 @@ def crawl():
 
     print('\nFinished uploading!\n')
 
+# Print iterations progress
+def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    # Print New Line on Complete
+    if iteration == total: 
+        print()
+
 
 # TODO: Schedule crawler to run based on parameters from admin panel
-
 def main():
     crawl()
 
 if __name__ == "__main__":
     main()
+
