@@ -7,6 +7,7 @@ import feedparser
 import time
 from id_crawling import study_id_crawling
 from gensim.summarization import keywords
+from gensim.summarization.summarizer import summarize
 
 DB_TABLE = "test"
 
@@ -166,7 +167,8 @@ def download_and_format(id: str) -> Study:
         keywordLists = keywords(description, words=5).split('\n')
     else:
          keywordLists = None
-    print("studyID is..",id,"the keywords are..", keywordLists)
+
+    # print("studyID is..",id,"the keywords are..", keywordLists)
     
     ################
 

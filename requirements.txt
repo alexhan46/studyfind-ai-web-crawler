@@ -28,3 +28,4 @@ six==1.15.0
 soupsieve==2.0.1
 sqlparse==0.3.1
 urllib3==1.25.10
+gensim==3.8.3
