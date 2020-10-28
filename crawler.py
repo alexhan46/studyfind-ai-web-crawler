@@ -13,7 +13,7 @@ from pysummarization.tokenizabledoc.simple_tokenizer import SimpleTokenizer
 from pysummarization.abstractabledoc.top_n_rank_abstractor import TopNRankAbstractor
 
 
-DB_TABLE = "test4"
+DB_TABLE = "test"
 
 config = {
   "apiKey": "AIzaSyC4wlsU_QkOjD1MhT2Im-IAXZAkd5uuFiE",
