@@ -8,6 +8,10 @@ import time
 from id_crawling import study_id_crawling
 from gensim.summarization import keywords
 from gensim.summarization.summarizer import summarize
+from pysummarization.nlpbase.auto_abstractor import AutoAbstractor
+from pysummarization.tokenizabledoc.simple_tokenizer import SimpleTokenizer
+from pysummarization.abstractabledoc.top_n_rank_abstractor import TopNRankAbstractor
+
 
 DB_TABLE = "test"
 
@@ -33,11 +37,12 @@ class Parameters:
 
 # Defines a study object
 class Study:
-    def __init__(self, title: str, description: str, last_updated: date, ID: str, study_type: str,
+    def __init__(self, title: str, summary: str, description: str, last_updated: date, ID: str, study_type: str,
                  conditions: List[str], sponsor: str, recruitment_status: str, age: (int, int, str), 
                  sex: str, control: str, additional_criteria: str, locations: List[Dict[str, str]],
                  contactName: str, contactPhone: str, contactEmail: str, keywordLists: List[str]):
         self.title = title
+        self.summary = summary
         self.description = description
         self.last_updated = last_updated
         self.ID = ID
@@ -53,14 +58,16 @@ class Study:
         self.contactName = contactName
         self.contactPhone = contactPhone
         self.contactEmail = contactEmail
-
+        self.NLP_summary = None
         #Adding keyword section
         self.keywordLists = keywordLists
 
     # String representation of a Study
+    def set_NLP_summary(self, summary: str):
+        self.NLP_summary = summary
 
     def __str__(self):
-        return f'{self.title} (ID: {self.ID}): {self.description}'
+        return f'{self.title} (ID: {self.ID}): {self.summary}'
 
 
 # Given a list of Study objects, exports the data to our database
@@ -69,6 +76,7 @@ def export_studies_to_database(studies: List[Study]):
     for studyvar in studies:
         idnum = studyvar.ID
         db.child(DB_TABLE).child(idnum).child("title").set(studyvar.title)
+        db.child(DB_TABLE).child(idnum).child("summary").set(studyvar.summary)
         db.child(DB_TABLE).child(idnum).child("description").set(studyvar.description)
         db.child(DB_TABLE).child(idnum).child("last_updated").set(str(studyvar.last_updated))
         db.child(DB_TABLE).child(idnum).child("ID").set(studyvar.ID)
@@ -84,6 +92,7 @@ def export_studies_to_database(studies: List[Study]):
         db.child(DB_TABLE).child(idnum).child("contactName").set(studyvar.contactName)
         db.child(DB_TABLE).child(idnum).child("contactPhone").set(studyvar.contactPhone)
         db.child(DB_TABLE).child(idnum).child("contactEmail").set(studyvar.contactEmail)
+        db.child(DB_TABLE).child(idnum).child("NLPSummary").set(studyvar.NLP_summary)
 
         #add keyword section
         db.child(DB_TABLE).child(idnum).child("keywordLists").set(studyvar.keywordLists)
@@ -104,7 +113,8 @@ def import_studies_from_database() -> List[Study]:
         return None
     while(len(data) != 0):
         id, study = data.popitem(last=False)
-        newstudy = Study(study["title"], study["description"], study["last_updated"], study["ID"], study["type"], study["conditions"], study["sponsor"], study["recruitmentStatus"], study["age"], study["sex"], study["control"], study["additionalCriteria"], study["locations"], study["contactName"], study["contactPhone"], study["contactEmail"], study['keywordLists'])
+        newstudy = Study(study["title"], study["summary"], study["description"], study["last_updated"], study["ID"], study["type"], study["conditions"], study["sponsor"], study["recruitmentStatus"], study["age"], study["sex"], study["control"], study["additionalCriteria"], study["locations"], study["contactName"], study["contactPhone"], study["contactEmail"], study['keywordLists'])
+        newstudy.set_NLP_summary(study["NLPSummary"])
         out.append(newstudy)
 
     return out
@@ -172,7 +182,14 @@ def download_and_format(id: str) -> Study:
 
     #foramtting 
     title = data.find("official_title").get_text() if data.find("official_title") else None
-    description = data.find("brief_summary").get_text() if data.find("brief_summary") != None else None
+    description = " ".join(data.find("detailed_description").get_text().split()) if data.find("detailed_description") != None else None
+    summary = " ".join(data.find("brief_summary").get_text().split()) if data.find("brief_summary") != None else None
+
+    NLP_summary = None
+    if description is not None:
+        NLP_summary = NLP_summarize(description)
+    elif summary is not None:
+        NLP_summary = NLP_summarize(summary)
 
     ################ Adding keywords by NLP
     if description is not None:
@@ -221,10 +238,37 @@ def download_and_format(id: str) -> Study:
     else:
         contactName, contactPhone, contactEmail = None, None, None
 
-    return Study(title, description, last_updated, id, study_type, conditions, sponsor, recruitment_status,
+    study = Study(title, summary, description, last_updated, id, study_type, conditions, sponsor, recruitment_status,
                 age, sex, control, additional_criteria, locations, contactName, contactPhone, contactEmail, keywordLists)
 
+    study.set_NLP_summary(NLP_summary)
 
+    return study
+
+
+def NLP_summarize(description: str):
+
+    # Object of automatic summarization.
+    auto_abstractor = AutoAbstractor()
+    # Set tokenizer.
+    auto_abstractor.tokenizable_doc = SimpleTokenizer()
+    # Set delimiter for making a list of sentence.
+    auto_abstractor.delimiter_list = [".", "\n"]
+    # Object of abstracting and filtering document.
+    abstractable_doc = TopNRankAbstractor()
+    # Summarize document.
+    result_dict = auto_abstractor.summarize(description, abstractable_doc)
+
+    # Output result.
+    maxi = [0, 0]
+    for result in result_dict["scoring_data"]:
+        if maxi[1] < result[1]:
+            maxi = result
+
+    if maxi[0] < len(result_dict["summarize_result"]):
+        return result_dict["summarize_result"][maxi[0]]
+    else:
+        return None
 
 # Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
@@ -281,6 +325,6 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
 def main():
     crawl()
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
     main()
 
