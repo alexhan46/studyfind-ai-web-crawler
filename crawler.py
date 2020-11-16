@@ -180,7 +180,7 @@ def download_and_format(id: str) -> Study:
         response = requests.get(url, headers=header, timeout= 10)
         rawData = response.text
     except Exception:
-        print("error!..reattempt", id)
+        print("error during fetching data! Re-attempt from failed studyID: \n", id)
         return download_and_format(id)
 
     # try: 
@@ -192,11 +192,9 @@ def download_and_format(id: str) -> Study:
     # except urllib.error as exception:
     #     print('error')
     #     return None
-    print("running" , id )
     # data = BeautifulSoup(rawdata.read(), "lxml-xml")
     data = BeautifulSoup(rawData, "lxml-xml")
 
-    print("after beautifulSoup", id)
     #foramtting 
     title = data.find("official_title").get_text() if data.find("official_title") else None
     description = " ".join(data.find("detailed_description").get_text().split()) if data.find("detailed_description") != None else None
@@ -303,11 +301,6 @@ def fetchStudyID():
 
 def crawl():
 
-    # print("\nChecking which studies need to be updated...")
-
-    # study_ids = get_new_study_ids(import_latest_study_id()) + get_study_ids(import_last_updated())
-
-    # study_ids = list(dict.fromkeys(study_ids)) # removes duplicates
 
     study_ids = fetchStudyID()
 
@@ -316,7 +309,7 @@ def crawl():
     print("\nRetreiving....\n")
 
     studies = []
-    
+
     printProgressBar(0, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)  
     for i, study_id in enumerate(study_ids):
         studies.append(download_and_format(study_id))

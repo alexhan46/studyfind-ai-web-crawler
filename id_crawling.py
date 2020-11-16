@@ -36,8 +36,12 @@ def study_id_crawling(last_study_id):
         if(last_study_id<=range[0] or last_study_id<=range[1]):
             
             parsedURL = "https://clinicaltrials.gov" + a_tag.get('href')
-            new_source_response = requests.get(parsedURL, headers=header, timeout= 30)
-            new_source = new_source_response.text
+            try:
+                new_source_response = requests.get(parsedURL, headers=header, timeout= 30)
+                new_source = new_source_response.text
+            except Exception:
+                print("failed to fetch url. Re-attemped to fetch again")
+                return study_id_crawling(last_study_id)
             source_html_per_page = BeautifulSoup(new_source, 'lxml')
             table_for_ids = source_html_per_page.find('table')
             ids = table_for_ids.find_all('a')
