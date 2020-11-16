@@ -1,4 +1,4 @@
-from bs4 import BeautifulSoup
+from  bs4 import BeautifulSoup
 import requests
 # adding fake User-Agent because our program is running in background
 from fake_useragent import UserAgent 
@@ -7,13 +7,19 @@ import os.path
 
 # study_id_base_index refer to the starting studyid to be crawled
 def study_id_crawling(last_study_id):
+    
     last_study_id = int(last_study_id[3:])
     ua = UserAgent()
     header = {'user-agent':ua.chrome}
     newly_added_studyIDs_list = []
 
     # getting html files from clinicaltrials.gov/ct2/about-site/crawling then grap the urls linking each subpages.
-    source = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30).text
+    try:
+        response = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30)
+        source = response.text
+    except Exception:
+        print("failed to fetch url. Re-attemped to fetch again")
+        return study_id_crawling(last_study_id)
     soup = BeautifulSoup(source, 'lxml')
 
     table = soup.find('table')
@@ -30,7 +36,8 @@ def study_id_crawling(last_study_id):
         if(last_study_id<=range[0] or last_study_id<=range[1]):
             
             parsedURL = "https://clinicaltrials.gov" + a_tag.get('href')
-            new_source = requests.get(parsedURL, headers=header, timeout= 30).text
+            new_source_response = requests.get(parsedURL, headers=header, timeout= 30)
+            new_source = new_source_response.text
             source_html_per_page = BeautifulSoup(new_source, 'lxml')
             table_for_ids = source_html_per_page.find('table')
             ids = table_for_ids.find_all('a')

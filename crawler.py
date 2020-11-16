@@ -2,6 +2,8 @@ from typing import List, Dict
 from datetime import datetime as date, time
 import urllib.request
 from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
+import requests
 import pyrebase
 import feedparser
 import time
@@ -167,19 +169,34 @@ def get_study_ids(last_updated) -> List[str]:
 def get_new_study_ids(latest_study) -> List[str]:
     return study_id_crawling(latest_study)
 
+# def requests_retry_session(retries=5, backoff_factor=0.3, session=None):
 
 # Given a study id, downloads and formats the data, and returns a Study object
 def download_and_format(id: str) -> Study:
+    ua = UserAgent()
+    header = {'user-agent':ua.chrome}
     url = "https://clinicaltrials.gov/ct2/show/" + id + "?resultsxml=true"
-    try: 
-        rawdata = urllib.request.urlopen(url)
-    except urllib.error.HTTPError as exception:
-        print(id)
-        print(exception)
-        return None
+    try:
+        response = requests.get(url, headers=header, timeout= 10)
+        rawData = response.text
+    except Exception:
+        print("error!..reattempt", id)
+        return download_and_format(id)
 
-    data = BeautifulSoup(rawdata.read(), "lxml-xml")
+    # try: 
+    #     # rawdata = urllib.request.urlopen(url)
+    # except urllib.error.HTTPError as exception:
+    #     print(id)
+    #     print(exception)
+    #     return None
+    # except urllib.error as exception:
+    #     print('error')
+    #     return None
+    print("running" , id )
+    # data = BeautifulSoup(rawdata.read(), "lxml-xml")
+    data = BeautifulSoup(rawData, "lxml-xml")
 
+    print("after beautifulSoup", id)
     #foramtting 
     title = data.find("official_title").get_text() if data.find("official_title") else None
     description = " ".join(data.find("detailed_description").get_text().split()) if data.find("detailed_description") != None else None
@@ -270,21 +287,36 @@ def NLP_summarize(description: str):
     else:
         return None
 
-# Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
-def crawl():
 
+
+
+def fetchStudyID():
     print("\nChecking which studies need to be updated...")
 
     study_ids = get_new_study_ids(import_latest_study_id()) + get_study_ids(import_last_updated())
 
     study_ids = list(dict.fromkeys(study_ids)) # removes duplicates
 
+    return study_ids
+# Executes the crawler, by getting new studies, download their data, and exporting it to the database
+
+def crawl():
+
+    # print("\nChecking which studies need to be updated...")
+
+    # study_ids = get_new_study_ids(import_latest_study_id()) + get_study_ids(import_last_updated())
+
+    # study_ids = list(dict.fromkeys(study_ids)) # removes duplicates
+
+    study_ids = fetchStudyID()
+
     print("\nFound " + str(len(study_ids)) + " studies to retrieve\n")
 
     print("\nRetreiving....\n")
 
     studies = []
+    
     printProgressBar(0, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)  
     for i, study_id in enumerate(study_ids):
         studies.append(download_and_format(study_id))
