@@ -6,13 +6,16 @@ import pyrebase
 import feedparser
 import time
 from id_crawling import study_id_crawling
-from gensim.summarization import keywords
+# from gensim.summarization import keywords
 from gensim.summarization.summarizer import summarize
 from pysummarization.nlpbase.auto_abstractor import AutoAbstractor
 from pysummarization.tokenizabledoc.simple_tokenizer import SimpleTokenizer
 from pysummarization.abstractabledoc.top_n_rank_abstractor import TopNRankAbstractor
 import threading
 import time
+import pke
+import string
+from nltk.corpus import stopwords
 
 
 DB_TABLE = "test"
@@ -24,6 +27,8 @@ config = {
   "storageBucket": "crawlerdata-4fb83.appspot.com",
   "serviceAccount": "crawlerdata-4fb83-firebase-adminsdk-qdzwv-1264b2c7f5.json"
 }
+
+extractor = pke.unsupervised.MultipartiteRank()
 
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
@@ -178,7 +183,24 @@ def download_and_format(id: str) -> Study:
 
     ################ Adding keywords by NLP
     if description is not None:
-        keywordLists = keywords(description, words=5).split('\n')
+        extractor.load_document(description, language="en", normalization='stemming')
+        # select the longest sequences of nouns and adjectives, that do
+        # not contain punctuation marks or stopwords as candidates.
+        pos = {'NOUN', 'PROPN', 'ADJ'}
+        stoplist = list(string.punctuation)
+        stoplist += ['-lrb-', '-rrb-', '-lcb-', '-rcb-', '-lsb-', '-rsb-']
+        stoplist += stopwords.words('english')
+        # Exclude common words for any studies
+        stoplist += ["study", "evaluate", "therapy", "patients"]
+
+        extractor.candidate_selection(pos=pos, stoplist=stoplist)
+        # build the Multipartite graph and rank candidates using random walk,
+        # alpha controls the weight adjustment mechanism, see TopicRank for
+        # threshold/method parameters.
+        extractor.candidate_weighting(alpha=1.1,
+                                    threshold=0.74,
+                                    method='average')
+        keywordLists = [a[0] for a in extractor.get_n_best(n=5)]
     else:
          keywordLists = None
 
