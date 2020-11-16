@@ -13,7 +13,12 @@ def study_id_crawling(last_study_id):
     newly_added_studyIDs_list = []
 
     # getting html files from clinicaltrials.gov/ct2/about-site/crawling then grap the urls linking each subpages.
-    source = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30).text
+    try:
+        response = requests.get('https://clinicaltrials.gov/ct2/about-site/crawling', headers=header, timeout= 30)
+        source = response.text
+    except Exception:
+        return study_id_crawling(last_study_id)
+
     soup = BeautifulSoup(source, 'lxml')
 
     table = soup.find('table')
