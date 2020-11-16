@@ -42,5 +42,5 @@ b. Manually executing the crawler
 
 ## Known Limitations
 
-- When updating studies that have already been crawled, there is a limitation placed by clinicaltrials.gov of 36000 studies, causing some studies to be left out. In our testing we have never gotten close to this limit (There are approx. 21000 studies that have been updated in the entire history of the website) .
+- When updating studies that have already been crawled, there is a limitation placed by clinicaltrials.gov, causing some studies to be left out. In our testing we have never gotten close to this limit as long as the crawler is executed daily.
 
