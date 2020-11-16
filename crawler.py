@@ -11,6 +11,8 @@ from gensim.summarization.summarizer import summarize
 from pysummarization.nlpbase.auto_abstractor import AutoAbstractor
 from pysummarization.tokenizabledoc.simple_tokenizer import SimpleTokenizer
 from pysummarization.abstractabledoc.top_n_rank_abstractor import TopNRankAbstractor
+import threading
+import time
 
 
 DB_TABLE = "test"
@@ -26,14 +28,7 @@ config = {
 firebase = pyrebase.initialize_app(config)
 db = firebase.database()
 
-# Defines the parameters from the admin panel
-
-
-class Parameters:
-
-    def __init__(self, dot: str, t: time):
-        self.day_of_the_week = dot
-        self.time = t
+crawled = 0
 
 # Defines a study object
 class Study:
@@ -70,39 +65,31 @@ class Study:
         return f'{self.title} (ID: {self.ID}): {self.summary}'
 
 
-# Given a list of Study objects, exports the data to our database
-def export_studies_to_database(studies: List[Study]):
-    maxId = None
-    for studyvar in studies:
-        idnum = studyvar.ID
-        db.child(DB_TABLE).child(idnum).child("title").set(studyvar.title)
-        db.child(DB_TABLE).child(idnum).child("summary").set(studyvar.summary)
-        db.child(DB_TABLE).child(idnum).child("description").set(studyvar.description)
-        db.child(DB_TABLE).child(idnum).child("last_updated").set(str(studyvar.last_updated))
-        db.child(DB_TABLE).child(idnum).child("ID").set(studyvar.ID)
-        db.child(DB_TABLE).child(idnum).child("type").set(studyvar.type)
-        db.child(DB_TABLE).child(idnum).child("conditions").set(studyvar.conditions)
-        db.child(DB_TABLE).child(idnum).child("sponsor").set(studyvar.sponsor)
-        db.child(DB_TABLE).child(idnum).child("recruitmentStatus").set(studyvar.recruitment_status)
-        db.child(DB_TABLE).child(idnum).child("age").set(studyvar.age)
-        db.child(DB_TABLE).child(idnum).child("sex").set(studyvar.sex)
-        db.child(DB_TABLE).child(idnum).child("control").set(studyvar.control)
-        db.child(DB_TABLE).child(idnum).child("additionalCriteria").set(studyvar.additional_criteria)
-        db.child(DB_TABLE).child(idnum).child("locations").set(studyvar.locations)
-        db.child(DB_TABLE).child(idnum).child("contactName").set(studyvar.contactName)
-        db.child(DB_TABLE).child(idnum).child("contactPhone").set(studyvar.contactPhone)
-        db.child(DB_TABLE).child(idnum).child("contactEmail").set(studyvar.contactEmail)
-        db.child(DB_TABLE).child(idnum).child("NLPSummary").set(studyvar.NLP_summary)
+# Given a Study object, exports the data to our database
+def export_study_to_database(studyvar: Study):
+    idnum = studyvar.ID
+    db.child(DB_TABLE).child(idnum).child("title").set(studyvar.title)
+    db.child(DB_TABLE).child(idnum).child("summary").set(studyvar.summary)
+    db.child(DB_TABLE).child(idnum).child("description").set(studyvar.description)
+    db.child(DB_TABLE).child(idnum).child("last_updated").set(str(studyvar.last_updated))
+    db.child(DB_TABLE).child(idnum).child("ID").set(studyvar.ID)
+    db.child(DB_TABLE).child(idnum).child("type").set(studyvar.type)
+    db.child(DB_TABLE).child(idnum).child("conditions").set(studyvar.conditions)
+    db.child(DB_TABLE).child(idnum).child("sponsor").set(studyvar.sponsor)
+    db.child(DB_TABLE).child(idnum).child("recruitmentStatus").set(studyvar.recruitment_status)
+    db.child(DB_TABLE).child(idnum).child("age").set(studyvar.age)
+    db.child(DB_TABLE).child(idnum).child("sex").set(studyvar.sex)
+    db.child(DB_TABLE).child(idnum).child("control").set(studyvar.control)
+    db.child(DB_TABLE).child(idnum).child("additionalCriteria").set(studyvar.additional_criteria)
+    db.child(DB_TABLE).child(idnum).child("locations").set(studyvar.locations)
+    db.child(DB_TABLE).child(idnum).child("contactName").set(studyvar.contactName)
+    db.child(DB_TABLE).child(idnum).child("contactPhone").set(studyvar.contactPhone)
+    db.child(DB_TABLE).child(idnum).child("contactEmail").set(studyvar.contactEmail)
+    db.child(DB_TABLE).child(idnum).child("NLPSummary").set(studyvar.NLP_summary)
 
-        #add keyword section
-        db.child(DB_TABLE).child(idnum).child("keywordLists").set(studyvar.keywordLists)
+    #add keyword section
+    db.child(DB_TABLE).child(idnum).child("keywordLists").set(studyvar.keywordLists)
 
-        if maxId is None or int(maxId[3:]) < int(idnum[3:]):
-            maxId = idnum
-    
-    export_last_updated(time.strftime("%m/%d/%Y")) # Update last_updated date
-    if maxId is not None:
-        export_latest_study_id(maxId)
 
 # Downloads studies from our database, and returns as a list of Study objects
 def import_studies_from_database() -> List[Study]:
@@ -174,8 +161,6 @@ def download_and_format(id: str) -> Study:
     try: 
         rawdata = urllib.request.urlopen(url)
     except urllib.error.HTTPError as exception:
-        print(id)
-        print(exception)
         return None
 
     data = BeautifulSoup(rawdata.read(), "lxml-xml")
@@ -270,8 +255,38 @@ def NLP_summarize(description: str):
     else:
         return None
 
-# Executes the crawler, by getting new studies, download their data, and exporting it to the database
 
+# Downloads a list of study ids and export it to the database
+def download_and_export(study_ids: List[str], run_event) -> str:
+
+    global crawled
+
+    for i, study_id in enumerate(study_ids):
+
+        if run_event.is_set():
+            while True:
+                try:
+
+                    # Download the study
+                    study = download_and_format(study_id)
+
+                    # Upload the study to our database
+                    export_study_to_database(study)
+
+                    break
+
+                except Exception as e:
+                    # Pause to prevent overloading the server
+                    time.sleep(10)
+
+
+            crawled += 1
+
+        else:
+            break
+
+
+# Executes the crawler, by getting new studies, download their data, and exporting it to the database
 def crawl():
 
     print("\nChecking which studies need to be updated...")
@@ -280,23 +295,56 @@ def crawl():
 
     study_ids = list(dict.fromkeys(study_ids)) # removes duplicates
 
-    print("\nFound " + str(len(study_ids)) + " studies to retrieve\n")
+    print("\nFound " + str(len(study_ids)) + " studies\n")
 
-    print("\nRetreiving....\n")
+    print("\nRetrieving studies....\n")
 
-    studies = []
-    printProgressBar(0, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)  
-    for i, study_id in enumerate(study_ids):
-        studies.append(download_and_format(study_id))
-        printProgressBar(i + 1, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)
+    printProgressBar(0, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50)
 
-    print("\nFinished retreiving!\n")
+    startTime = time.time()
 
-    print('\nUploading to database...')
+    N = 4 # Number of chunks/threads to split studies into
 
-    export_studies_to_database(studies)
+    run_event = threading.Event() # Allows us to interrupt threads
+    run_event.set()
 
-    print('\nFinished uploading!\n')
+    # Separate chunks of study_ids into N threads
+    threads = [threading.Thread(target=download_and_export, args=(chunk_of_studies, run_event)) for chunk_of_studies in chunks(study_ids, N)]
+
+    global crawled
+
+    [t.start() for t in threads]
+
+    try:
+        while crawled < len(study_ids):
+            printProgressBar(crawled, len(study_ids), prefix = 'Progress:', suffix = 'Complete', length = 50, printEnd = " - Speed: " + str(round((crawled)/(time.time() - startTime), 2)) + " studies/sec \r")
+    except KeyboardInterrupt:
+        print("\n\nCanceling...")
+        run_event.clear()
+
+    # Wait for threads to finish
+    [t.join() for t in threads]
+
+    if run_event.is_set():
+        # Update last_updated date with the max id
+        export_last_updated(time.strftime("%m/%d/%Y")) 
+        if len(study_ids) > 0:
+
+            maxId = None
+            for i in study_ids:
+                if maxId is None or int(maxId[3:]) < int(i[3:]):
+                    maxId = i
+
+            export_latest_study_id(maxId)
+
+    print('\nFinished!\n')
+
+
+# Yield successive n-sized chunks from lst 
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
 
 # Print iterations progress
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
