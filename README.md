@@ -11,9 +11,9 @@ Coded in Python v3.8.5
 > #### New Features
 >
 > - [#7](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/7)
->   [#8](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/8) > [#9](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/9) > [#15](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/15) > [#25](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/25)
+>   [#8](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/8)  [#9](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/9)  [#15](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/15)  [#25](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/25)
 >   Download research studies by crawling clinicaltrials.gov=
-> - [#6](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/6) > [#26](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/26)
+> - [#6](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/6)  [#26](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/26)
 >   Schedule crawling tasks to run on a recurring basis
 > - [#27](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/27)
 >   [#33](https://github.com/alexhan46/studyfind-ai-web-crawle/issues/33)
