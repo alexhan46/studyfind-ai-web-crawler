@@ -1,4 +1,6 @@
 # AI Web Crawler 1.0
+[![Automated Release Notes by gren](https://img.shields.io/badge/%F0%9F%A4%96-release%20notes-00B2EE.svg)](https://github.com/alexhan46/studyfind-ai-web-crawler/)
+[![All Contributors](https://img.shields.io/badge/all_contributors-5-orange.svg?style=flat-square)](#contributors-)
 
 AI Web Crawler is a python tool that downloads data about available research studies, formats it, and uploads the data to a database.
 
@@ -66,3 +68,21 @@ python crawler.py
 ## Known Limitations
 
 - When updating studies that have already been crawled, there is a limitation placed by clinicaltrials.gov, causing some studies to be left out. In our testing we have never gotten close to this limit as long as the crawler is executed daily.
+
+
+## Contributors ✨
+
+Meet our team mates
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="https://github.com/adeeb897"><img src="https://avatars1.githubusercontent.com/u/13613663?s=460&v=4" width="100px;" alt=""/><br /><sub><b>Adeeb Zaman</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/joheeju"><img src="https://avatars1.githubusercontent.com/u/31485229?s=460&u=3a9ec697656d5171102d81d4fcd1e4dd89a666cd&v=4" width="100px;" alt=""/><br /><sub><b>Heejoo Cho</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/jsisson7"><img src="https://avatars1.githubusercontent.com/u/70162294?s=460&v=4" width="100px;" alt=""/><br /><sub><b>Jonathon Sisson</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/jkim3389"><img src="https://avatars0.githubusercontent.com/u/45981964?s=460&v=4" width="100px;" alt=""/><br /><sub><b>Juntae Kim</b></sub></a><br /></td>
+    <td align="center"><a href="https://github.com/alexhan46"><img src="https://avatars2.githubusercontent.com/u/3508584?s=460&u=1b618325e26851b4509532038b6b24845d66edd9&v=4" width="100px;" alt=""/><br /><sub><b>Alex Han</b></sub></a><br /></td>
+  </tr>
+</table>
