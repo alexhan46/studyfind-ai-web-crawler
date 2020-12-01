@@ -42,7 +42,7 @@ Coded in Python v3.8.5
 2. To install dependencies, execute the following command where the code was downloaded
 
 ```
-   `pip install -r requirements.txt`
+   pip install -r requirements.txt
 ```
 
 3. Place the Firebase JSON into the same folder
