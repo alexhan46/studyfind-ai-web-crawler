@@ -44,8 +44,15 @@ Coded in Python v3.8.5
 ```
    pip install -r requirements.txt
 ```
+3. Run the following commands to install other required dependencies
 
-3. Place the Firebase JSON into the same folder
+```
+  python -m nltk.downloader stopwords
+  python -m nltk.downloader universal_tagset
+  python -m spacy download en
+```
+
+4. Place the Firebase JSON into the same folder
 
 ### Usage
 
